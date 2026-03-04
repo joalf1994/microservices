@@ -1,6 +1,6 @@
 package com.jbobadilla.product_service.service.impl;
 
-import com.jbobadilla.product_service.exception.NotFoundException;
+import com.jbobadilla.product_service.exception.ProductNotFoundException;
 import com.jbobadilla.product_service.model.dtos.ProductRequest;
 import com.jbobadilla.product_service.model.dtos.ProductResponse;
 import com.jbobadilla.product_service.model.entities.Product;
@@ -25,7 +25,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductResponse findById(Long id) {
         Product  product = productRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Product not found"));
+                .orElseThrow(() -> new ProductNotFoundException("Product not found"));
         return productMapper.mapToProductResponse(product);
     }
 
@@ -45,7 +45,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductResponse updateProduct(Long id, ProductRequest productRequest) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Product not found"));
+                .orElseThrow(() -> new ProductNotFoundException("Product not found"));
         product.setSku(productRequest.getSku());
         product.setName(productRequest.getName());
         product.setDescription(productRequest.getDescription());
@@ -56,11 +56,9 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public void deleteProduct(Long id) {
-        if (productRepository.findById(id).isPresent()) {
-            productRepository.deleteById(id);
-        }  else {
-            throw new NotFoundException("Product not found");
+        if (!productRepository.existsById(id)) {
+            throw new ProductNotFoundException("Product not found");
         }
-
+        productRepository.deleteById(id);
     }
 }

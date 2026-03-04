@@ -1,6 +1,6 @@
 package com.jbobadilla.product_service.service.impl;
 
-import com.jbobadilla.product_service.exception.NotFoundException;
+import com.jbobadilla.product_service.exception.ProductNotFoundException;
 import com.jbobadilla.product_service.model.dtos.ProductRequest;
 import com.jbobadilla.product_service.model.dtos.ProductResponse;
 import com.jbobadilla.product_service.model.entities.Product;
@@ -41,7 +41,7 @@ class ProductServiceImplTest {
     @BeforeEach
     void setUp() {
         //inicializamos el objeto
-        product = ProductDataFactory.getMockProduct().build();
+        product = ProductDataFactory.getMockProduct().id(1L).build();
         productResponse = ProductDataFactory.getMockProductResponse().build();
         productRequest = ProductDataFactory.getMockProductRequest().build();
 
@@ -73,7 +73,7 @@ class ProductServiceImplTest {
         when(productRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> productService.findById(99L))
-                .isInstanceOf(NotFoundException.class)
+                .isInstanceOf(ProductNotFoundException.class)
                 .hasMessage("Product not found");
 
         verify(productRepository).findById(99L);
@@ -158,7 +158,7 @@ class ProductServiceImplTest {
         when(productRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> productService.updateProduct(1L, productRequest))
-                .isInstanceOf(NotFoundException.class)
+                .isInstanceOf(ProductNotFoundException.class)
                 .hasMessage("Product not found");
 
         verify(productRepository).findById(1L);
@@ -169,11 +169,15 @@ class ProductServiceImplTest {
     @Test
     @DisplayName("Should delete product when ID exist")
     void shouldDeleteProductWhenIdExists() {
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        // Given
+        when(productRepository.existsById(1L)).thenReturn(true);
+        doNothing().when(productRepository).deleteById(1L);
 
+        // When
         productService.deleteProduct(1L);
 
-        verify(productRepository).findById(1L);
+        // Then
+        verify(productRepository).existsById(1L);
         verify(productRepository).deleteById(1L);
     }
 
@@ -181,13 +185,13 @@ class ProductServiceImplTest {
     @DisplayName("Should ThrowException When no product exist")
     void shouldThrowExceptionWhenNoProductExist() {
 
-        when(productRepository.findById(1L)).thenReturn(Optional.empty());
+        when(productRepository.existsById(1L)).thenReturn(false);
 
         assertThatThrownBy(() -> productService.deleteProduct(1L))
-                .isInstanceOf(NotFoundException.class)
+                .isInstanceOf(ProductNotFoundException.class)
                 .hasMessage("Product not found");
 
-        verify(productRepository).findById(1L);
+        verify(productRepository).existsById(product.getId());
     }
 
 }

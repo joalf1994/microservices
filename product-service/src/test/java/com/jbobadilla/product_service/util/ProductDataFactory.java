@@ -4,6 +4,9 @@ import com.jbobadilla.product_service.model.dtos.ProductRequest;
 import com.jbobadilla.product_service.model.dtos.ProductResponse;
 import com.jbobadilla.product_service.model.entities.Product;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ProductDataFactory {
 
     // Muestra el Mock q devolverá
@@ -30,7 +33,6 @@ public class ProductDataFactory {
     // Objeto Product
     public static Product.ProductBuilder getMockProduct() {
         return Product.builder()
-                .id(1L)
                 .sku("sku1")
                 .name("Test Product")
                 .description("Test Product")

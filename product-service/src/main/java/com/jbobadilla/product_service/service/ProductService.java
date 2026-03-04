@@ -1,5 +1,6 @@
 package com.jbobadilla.product_service.service;
 
+import com.jbobadilla.product_service.exception.ProductNotFoundException;
 import com.jbobadilla.product_service.model.dtos.ProductRequest;
 import com.jbobadilla.product_service.model.dtos.ProductResponse;
 
