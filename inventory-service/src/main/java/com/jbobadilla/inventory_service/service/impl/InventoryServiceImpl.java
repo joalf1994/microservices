@@ -1,16 +1,21 @@
 package com.jbobadilla.inventory_service.service.impl;
 
-import com.jbobadilla.inventory_service.model.dto.Response;
+import com.jbobadilla.inventory_service.model.dto.InventoryResponse;
 import com.jbobadilla.inventory_service.model.dto.OrderItemRequest;
 import com.jbobadilla.inventory_service.model.entity.Inventory;
+import com.jbobadilla.inventory_service.model.mapper.InventoryMapper;
 import com.jbobadilla.inventory_service.repository.InventoryRepository;
 import com.jbobadilla.inventory_service.service.InventoryService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * User: jbobadilla
@@ -22,6 +27,7 @@ import java.util.Optional;
 public class InventoryServiceImpl implements InventoryService {
 
     private final InventoryRepository inventoryRepository;
+    private final InventoryMapper inventoryMapper;
 
     @Override
     public boolean isInStock(String sku) {
@@ -30,21 +36,51 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    public Response areInStock(List<OrderItemRequest> orderItems) {
-        var errorList = new ArrayList<String>();
+    public List<InventoryResponse> areInStock(List<OrderItemRequest> orderItems) {
+        List<InventoryResponse> responseList = new ArrayList<>();
+        var skus = orderItems.stream().map(OrderItemRequest::getSku).toList();
 
-        List<String> skus = orderItems.stream().map(OrderItemRequest::getSku).toList();
-
-        List<Inventory> inventoryList = inventoryRepository.findBySkuIn(skus);
+        List<Inventory> inventoryLit = inventoryRepository.findBySkuIn(skus);
+        Map<String, Inventory> inventoryMap = inventoryLit.stream().collect(Collectors.toMap(Inventory::getSku, Function.identity()));
 
         orderItems.forEach(orderItem -> {
-            var inventory = inventoryList.stream().filter(value -> value.getSku().equals(orderItem.getSku())).findFirst();
-            if (inventory.isEmpty()) {
-                errorList.add("Product with SKU " + orderItem.getSku() + " does not exist");
-            }  else if (inventory.get().getQuantity() < orderItem.getQuantity()) {
-                errorList.add("Product with SKU " + orderItem.getSku() + " has insufficient quantity");
-            }
+            Inventory inventory = inventoryMap.get(orderItem.getSku());
+
+            boolean inStock = inventory != null && inventory.getQuantity() >= orderItem.getQuantity();
+            long inStockQuantity = inventory != null ? inventory.getQuantity() : 0L;
+
+            responseList.add(
+                    InventoryResponse.builder()
+                    .sku(orderItem.getSku())
+                    .isInStock(inStock)
+                    .quantity(inStockQuantity)
+                    .build());
         });
-        return !errorList.isEmpty() ? new Response(errorList.toArray(new String[0])) : new Response(null);
+        return responseList;
+    }
+
+    @Override
+    @Transactional
+    public void reduceStock(List<OrderItemRequest> orderItems) {
+
+        var sks = orderItems.stream().map(OrderItemRequest::getSku).toList();
+
+        List<Inventory> inventoryLit = inventoryRepository.findBySkuIn(sks);
+        Map<String, Inventory> inventoryMap = inventoryLit.stream().collect(Collectors.toMap(Inventory::getSku, Function.identity()));
+
+        orderItems.forEach(orderItem -> {
+            Inventory inventory = inventoryMap.get(orderItem.getSku());
+            if (inventory == null) {
+                throw new RuntimeException("Product not found: " + orderItem.getSku());
+            }
+
+            long reduce = inventory.getQuantity() - orderItem.getQuantity();
+
+            if (reduce < 0) {
+                throw new RuntimeException("Insufficient stock for: " + orderItem.getSku());
+            }
+
+            inventory.setQuantity(reduce);
+        });
     }
 }

@@ -1,6 +1,6 @@
 package com.jbobadilla.inventory_service.controller;
 
-import com.jbobadilla.inventory_service.model.dto.Response;
+import com.jbobadilla.inventory_service.model.dto.InventoryResponse;
 import com.jbobadilla.inventory_service.model.dto.OrderItemRequest;
 import com.jbobadilla.inventory_service.service.InventoryService;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,14 @@ public class InventoryController {
     }
 
     @PostMapping("/in-stock")
-    public ResponseEntity<Response> areInStock(@RequestBody List<OrderItemRequest> orderItems) {
+    public ResponseEntity<List<InventoryResponse>> areInStock(@RequestBody List<OrderItemRequest> orderItems) {
         return ResponseEntity.ok(inventoryService.areInStock(orderItems));
     }
+
+    @PutMapping("/reduce")
+    public ResponseEntity<Void> reduceStock(@RequestBody List<OrderItemRequest> orderItems) {
+        inventoryService.reduceStock(orderItems);
+        return ResponseEntity.noContent().build();
+    }
+
 }
