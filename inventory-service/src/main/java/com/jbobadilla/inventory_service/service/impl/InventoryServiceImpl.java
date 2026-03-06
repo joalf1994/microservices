@@ -1,5 +1,7 @@
 package com.jbobadilla.inventory_service.service.impl;
 
+import com.jbobadilla.inventory_service.exception.InsufficientStockException;
+import com.jbobadilla.inventory_service.exception.ProductNotFoundException;
 import com.jbobadilla.inventory_service.model.dto.InventoryResponse;
 import com.jbobadilla.inventory_service.model.dto.OrderItemRequest;
 import com.jbobadilla.inventory_service.model.entity.Inventory;
@@ -71,13 +73,13 @@ public class InventoryServiceImpl implements InventoryService {
         orderItems.forEach(orderItem -> {
             Inventory inventory = inventoryMap.get(orderItem.getSku());
             if (inventory == null) {
-                throw new RuntimeException("Product not found: " + orderItem.getSku());
+                throw new ProductNotFoundException("Product not found: " + orderItem.getSku());
             }
 
             long reduce = inventory.getQuantity() - orderItem.getQuantity();
 
             if (reduce < 0) {
-                throw new RuntimeException("Insufficient stock for: " + orderItem.getSku());
+                throw new InsufficientStockException("Insufficient stock for: " + orderItem.getSku());
             }
 
             inventory.setQuantity(reduce);
